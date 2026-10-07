@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Plataforma web para manutenção e backup de bancos PostgreSQL.">
+  <title>Plataforma de Gerenciamento de Backup</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#configuracao" aria-label="Página inicial">
+      <span class="brand-mark" aria-hidden="true">GB</span>
+      <span>
+        <strong>Gerenciamento de Backup</strong>
+        <small>PostgreSQL</small>
+      </span>
+    </a>
+
+    <nav class="navigation" aria-label="Navegação principal">
+      <button class="nav-button active" type="button" data-view="configuracao">Configuração</button>
+      <button class="nav-button" type="button" data-view="acompanhamento">Acompanhamento</button>
+      <button class="nav-button" type="button" data-view="restauracao">Restauração</button>
+      <button class="nav-button" type="button" data-view="historico">Histórico</button>
+    </nav>
+
+    <span class="environment-badge">Versão final · Entrega 4</span>
+  </header>
+
+  <main class="page-shell">
+    <section class="view active" id="configuracao" aria-labelledby="titulo-configuracao">
+      <div class="page-heading">
+        <div>
+          <span class="eyebrow">Entrega 4 · Fluxo completo</span>
+          <h1 id="titulo-configuracao">Nova execução</h1>
+          <p>Conecte o PostgreSQL, escolha a regra de manutenção e configure a geração do backup.</p>
+        </div>
+        <span class="status-badge neutral" id="connection-badge">Conexão não testada</span>
+      </div>
+
+      <form id="process-form" novalidate>
+        <div class="form-layout">
+          <section class="panel" aria-labelledby="titulo-conexao">
+            <div class="panel-heading">
+              <span class="step-number">1</span>
+              <div>
+                <h2 id="titulo-conexao">Conexão com o PostgreSQL</h2>
+                <p>A senha fica apenas na memória durante o teste ou a execução.</p>
+              </div>
+            </div>
+
+            <div class="fields-grid">
+              <label class="field field-wide">
+                <span>Servidor</span>
+                <input id="host" name="host" type="text" value="localhost" maxlength="255" required>
+              </label>
+
+              <label class="field">
+                <span>Porta</span>
+                <input id="porta" name="porta" type="number" value="5432" min="1" max="65535" required>
+              </label>
+
+              <label class="field field-wide">
+                <span>Banco de dados</span>
+                <input id="banco" name="banco" type="text" value="futebol_times" maxlength="63" required>
+              </label>
+
+              <label class="field">
+                <span>Usuário</span>
+                <input id="usuario" name="usuario" type="text" value="postgres" maxlength="63" autocomplete="username" required>
+              </label>
+
+              <div class="field field-full">
+                <label for="senha">Senha</label>
+                <span class="password-field">
+                  <input id="senha" name="senha" type="password" maxlength="255" autocomplete="current-password" required>
+                  <button id="toggle-password" type="button" aria-label="Mostrar ou ocultar senha">Mostrar</button>
+                </span>
+              </div>
+            </div>
+
+            <div class="connection-actions">
+              <button class="button secondary" id="test-connection" type="submit">Testar conexão</button>
+              <span class="inline-status" id="inline-status" role="status">Aguardando teste</span>
+            </div>
+
+            <div class="message hidden" id="connection-message" role="alert"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="titulo-backup">
+            <div class="panel-heading">
+              <span class="step-number">2</span>
+              <div>
+                <h2 id="titulo-backup">Parâmetros do backup</h2>
+                <p>O destino é uma pasta acessível pelo computador que executa o servidor Node.js.</p>
+              </div>
+            </div>
+
+            <div class="fields-grid">
+              <label class="field field-full">
+                <span>Destino principal</span>
+                <input id="destino" name="destino" type="text" value="backups" maxlength="1024" required>
+              </label>
+
+              <label class="field">
+                <span>Quantidade a manter</span>
+                <input id="quantidade" name="quantidade" type="number" value="5" min="0" max="1000" required>
+                <small>Use 0 para não limitar.</small>
+              </label>
+
+              <label class="field field-wide">
+                <span>Destino adicional</span>
+                <input id="destino-adicional" name="destinoAdicional" type="text" maxlength="1024" placeholder="Opcional">
+              </label>
+
+              <label class="field field-full">
+                <span>Caminho do pg_dump</span>
+                <input id="pg-dump" name="caminhoPgDump" type="text" maxlength="1024" placeholder="Opcional, por exemplo C:\Program Files\PostgreSQL\18\bin\pg_dump.exe">
+                <small>Deixe vazio para localizar automaticamente pelo PATH ou pela instalação do PostgreSQL.</small>
+              </label>
+            </div>
+
+            <fieldset class="options-grid" aria-labelledby="titulo-protecao">
+              <legend id="titulo-protecao">Proteção do arquivo</legend>
+              <label class="switch-row">
+                <span><strong>Criptografar com AES</strong><small>Protege o backup com AES-256-GCM.</small></span>
+                <input id="criptografar" name="criptografar" type="checkbox">
+              </label>
+              <label class="switch-row">
+                <span><strong>Compactar em ZIP</strong><small>Gera um ZIP AES-256 protegido por senha.</small></span>
+                <input id="compactar" name="compactar" type="checkbox">
+              </label>
+            </fieldset>
+
+            <div class="fields-grid protection-fields">
+              <label class="field field-wide">
+                <span>Chave da criptografia AES</span>
+                <input id="chave-criptografia" name="chaveCriptografia" type="password" minlength="8" maxlength="255" autocomplete="new-password" disabled>
+                <small>Obrigatória quando a criptografia estiver habilitada. Não será gravada.</small>
+              </label>
+              <label class="field">
+                <span>Senha do ZIP</span>
+                <input id="senha-zip" name="senhaZip" type="password" minlength="8" maxlength="255" autocomplete="new-password" disabled>
+                <small>Obrigatória quando a compactação estiver habilitada.</small>
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel maintenance-panel" aria-labelledby="titulo-manutencao">
+          <div class="panel-heading compact-heading">
+            <span class="step-number">3</span>
+            <div>
+              <h2 id="titulo-manutencao">Decisão de manutenção</h2>
+              <p>O modo manual substitui a decisão automática nesta execução.</p>
+            </div>
+          </div>
+
+          <fieldset class="radio-options">
+            <legend class="sr-only">Modo de manutenção</legend>
+            <label class="radio-card">
+              <input type="radio" name="modoManutencao" value="automatico" checked>
+              <span><strong>Automática</strong><small>Usa os dias desde a última manutenção registrada.</small></span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="modoManutencao" value="manual_nenhuma">
+              <span><strong>Manual · nenhuma</strong><small>Gera o backup sem executar manutenção.</small></span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="modoManutencao" value="manual_vacuum">
+              <span><strong>Manual · VACUUM</strong><small>Executa a manutenção simples antes do backup.</small></span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="modoManutencao" value="manual_completa">
+              <span><strong>Manual · completa</strong><small>Executa VACUUM FULL ANALYZE antes do backup.</small></span>
+            </label>
+          </fieldset>
+
+          <div class="rule-strip" role="group" aria-label="Regras automáticas">
+            <span><strong>&lt; 30 dias</strong>Nenhuma</span>
+            <span><strong>30 a 60 dias</strong>VACUUM</span>
+            <span><strong>&gt; 60 dias</strong>VACUUM FULL ANALYZE</span>
+            <span><strong>Sem histórico</strong>VACUUM FULL ANALYZE</span>
+          </div>
+
+          <div class="demonstration-grid">
+            <label class="field">
+              <span>E-mail para log de falha</span>
+              <input id="email-falha" name="emailFalha" type="email" value="equipe@exemplo.com" maxlength="255">
+              <small>O envio é simulado em um arquivo .eml para comprovação.</small>
+            </label>
+            <label class="switch-row warning-switch">
+              <span><strong>Simular falha controlada</strong><small>Interrompe a etapa de backup e preserva o log. Use somente na demonstração.</small></span>
+              <input id="simular-falha" name="simularFalha" type="checkbox">
+            </label>
+          </div>
+        </section>
+
+        <section class="database-summary" aria-labelledby="titulo-resumo-banco">
+          <div>
+            <span class="eyebrow">Banco-alvo</span>
+            <h2 id="titulo-resumo-banco">Resumo da conexão</h2>
+          </div>
+
+          <div class="metrics-grid summary-metrics">
+            <article class="metric"><span>Banco</span><strong id="metric-banco">—</strong></article>
+            <article class="metric"><span>PostgreSQL</span><strong id="metric-versao">—</strong></article>
+            <article class="metric"><span>Tabelas públicas</span><strong id="metric-tabelas">—</strong></article>
+            <article class="metric"><span>Total de registros</span><strong id="metric-registros">—</strong></article>
+          </div>
+
+          <div class="table-wrapper database-table-wrapper">
+            <table>
+              <thead><tr><th scope="col">Tabela pública</th><th scope="col">Registros</th></tr></thead>
+              <tbody id="database-tables-body">
+                <tr class="empty-row"><td colspan="2">Teste a conexão para listar as tabelas.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="form-footer">
+          <div>
+            <p><strong>Versão final:</strong> manutenção, backup, AES, ZIP, retenção, cópia, log e restauração integrados.</p>
+            <p class="release-note">Chaves e senhas permanecem somente na memória durante a execução.</p>
+          </div>
+          <button class="button primary" id="start-process" type="button" disabled>Iniciar fluxo de backup</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="view" id="acompanhamento" aria-labelledby="titulo-acompanhamento">
+      <div class="page-heading">
+        <div>
+          <span class="eyebrow">Execução em tempo real</span>
+          <h1 id="titulo-acompanhamento">Acompanhamento do processo</h1>
+          <p id="progress-message">Inicie uma execução na tela de configuração.</p>
+        </div>
+        <span class="status-badge neutral" id="process-badge">Aguardando início</span>
+      </div>
+
+      <div class="progress-overview panel">
+        <div class="progress-label"><span>Progresso</span><strong id="progress-value">0%</strong></div>
+        <div class="progress-track" aria-hidden="true">
+          <span id="progress-bar"></span>
+        </div>
+        <progress class="sr-only" id="process-progress-native" max="100" value="0">0%</progress>
+      </div>
+
+      <div class="progress-layout">
+        <section class="panel">
+          <h2>Etapas</h2>
+          <ol class="steps-list" id="process-steps">
+            <li data-process-step="validacao"><span>1</span><strong>Validação da conexão e dos parâmetros</strong><em>Aguardando</em></li>
+            <li data-process-step="decisao"><span>2</span><strong>Decisão de manutenção</strong><em>Aguardando</em></li>
+            <li data-process-step="manutencao"><span>3</span><strong>Execução da manutenção</strong><em>Aguardando</em></li>
+            <li data-process-step="backup"><span>4</span><strong>Geração do backup</strong><em>Aguardando</em></li>
+            <li data-process-step="criptografia"><span>5</span><strong>Criptografia AES</strong><em>Aguardando</em></li>
+            <li data-process-step="compactacao"><span>6</span><strong>Compactação ZIP protegida</strong><em>Aguardando</em></li>
+            <li data-process-step="finalizacao"><span>7</span><strong>Retenção, cópia e histórico</strong><em>Aguardando</em></li>
+          </ol>
+        </section>
+
+        <aside class="panel result-card" aria-labelledby="titulo-resultado-backup">
+          <span class="eyebrow" id="titulo-resultado-backup">Resultado da execução</span>
+          <dl class="result-list">
+            <div><dt>Origem da decisão</dt><dd id="result-mode">—</dd></div>
+            <div><dt>Dias desde a manutenção</dt><dd id="result-days">—</dd></div>
+            <div><dt>Ação escolhida</dt><dd id="result-action">—</dd></div>
+            <div><dt>Arquivo final</dt><dd id="result-file">—</dd></div>
+            <div><dt>Criptografia</dt><dd id="result-encryption">—</dd></div>
+            <div><dt>Compactação</dt><dd id="result-compression">—</dd></div>
+            <div><dt>Cópia adicional</dt><dd id="result-copy">—</dd></div>
+            <div><dt>Log preservado</dt><dd id="result-log">—</dd></div>
+            <div><dt>E-mail simulado</dt><dd id="result-email">—</dd></div>
+          </dl>
+        </aside>
+      </div>
+
+      <section class="panel log-panel">
+        <div class="table-toolbar log-toolbar">
+          <div><h2>Log da execução</h2><p>Mensagens operacionais sem exposição da senha.</p></div>
+        </div>
+        <pre id="process-log" aria-live="polite">Nenhuma execução iniciada.</pre>
+      </section>
+    </section>
+
+    <section class="view" id="restauracao" aria-labelledby="titulo-restauracao">
+      <div class="page-heading">
+        <div>
+          <span class="eyebrow">Validação da recuperação</span>
+          <h1 id="titulo-restauracao">Restaurar e conferir backup</h1>
+          <p>A plataforma prepara arquivos simples, criptografados ou compactados e confere os dados restaurados.</p>
+        </div>
+        <span class="status-badge neutral" id="restore-badge">Aguardando início</span>
+      </div>
+
+      <form id="restore-form" novalidate>
+        <div class="form-layout">
+          <section class="panel" aria-labelledby="titulo-origem-restauracao">
+            <div class="panel-heading">
+              <span class="step-number">1</span>
+              <div>
+                <h2 id="titulo-origem-restauracao">Arquivo de origem</h2>
+                <p>Use um arquivo .backup, .backup.aes ou .zip gerado pela plataforma.</p>
+              </div>
+            </div>
+            <div class="fields-grid">
+              <label class="field field-full">
+                <span>Caminho completo do arquivo</span>
+                <input id="restore-file" name="arquivoBackup" type="text" maxlength="1024" placeholder="C:\backups\futebol_times_20261007_120000_000.zip" required>
+              </label>
+              <label class="field field-wide">
+                <span>Chave AES</span>
+                <input id="restore-aes-key" name="chaveCriptografia" type="password" maxlength="255" autocomplete="new-password">
+                <small>Preencha quando o backup tiver sido criptografado.</small>
+              </label>
+              <label class="field">
+                <span>Senha do ZIP</span>
+                <input id="restore-zip-password" name="senhaZip" type="password" maxlength="255" autocomplete="new-password">
+                <small>Preencha para arquivos .zip.</small>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="titulo-destino-restauracao">
+            <div class="panel-heading">
+              <span class="step-number">2</span>
+              <div>
+                <h2 id="titulo-destino-restauracao">Banco de destino</h2>
+                <p>As credenciais da tela Configuração serão utilizadas.</p>
+              </div>
+            </div>
+            <div class="fields-grid">
+              <label class="field field-full">
+                <span>Nome do banco restaurado</span>
+                <input id="restore-database" name="bancoDestino" type="text" value="futebol_restaurado" maxlength="63" required>
+                <small>Deve ser diferente do banco de origem. Se não existir, será criado.</small>
+              </label>
+              <label class="field field-full">
+                <span>Caminho do pg_restore</span>
+                <input id="pg-restore" name="caminhoPgRestore" type="text" maxlength="1024" placeholder="Opcional, por exemplo C:\Program Files\PostgreSQL\18\bin\pg_restore.exe">
+              </label>
+            </div>
+            <div class="connection-actions">
+              <button class="button primary" id="start-restore" type="submit" disabled>Restaurar e conferir</button>
+              <span class="inline-status">Teste primeiro a conexão na tela Configuração.</span>
+            </div>
+            <div class="message hidden" id="restore-message" role="alert"></div>
+          </section>
+        </div>
+      </form>
+
+      <div class="progress-overview panel restore-progress">
+        <div class="progress-label"><span>Progresso da restauração</span><strong id="restore-progress-value">0%</strong></div>
+        <div class="progress-track" id="restore-progress-track" aria-hidden="true">
+          <span id="restore-progress-bar"></span>
+        </div>
+        <progress class="sr-only" id="restore-progress-native" max="100" value="0">0%</progress>
+        <p class="restore-status-text" id="restore-progress-message">Nenhuma restauração iniciada.</p>
+      </div>
+
+      <div class="progress-layout">
+        <section class="panel">
+          <h2>Etapas da restauração</h2>
+          <ol class="steps-list" id="restore-steps">
+            <li data-restore-step="validacao"><span>1</span><strong>Validação do arquivo e da conexão</strong><em>Aguardando</em></li>
+            <li data-restore-step="preparacao"><span>2</span><strong>Descompactação e descriptografia</strong><em>Aguardando</em></li>
+            <li data-restore-step="restauracao"><span>3</span><strong>Restauração com pg_restore</strong><em>Aguardando</em></li>
+            <li data-restore-step="verificacao"><span>4</span><strong>Conferência da integridade dos dados</strong><em>Aguardando</em></li>
+            <li data-restore-step="finalizacao"><span>5</span><strong>Registro do resultado</strong><em>Aguardando</em></li>
+          </ol>
+        </section>
+
+        <aside class="panel result-card" aria-labelledby="titulo-resultado-restauracao">
+          <span class="eyebrow" id="titulo-resultado-restauracao">Resultado da restauração</span>
+          <dl class="result-list">
+            <div><dt>Banco de destino</dt><dd id="restore-result-database">—</dd></div>
+            <div><dt>Banco criado</dt><dd id="restore-result-created">—</dd></div>
+            <div><dt>Tabelas conferidas</dt><dd id="restore-result-tables">—</dd></div>
+            <div><dt>Registros conferidos</dt><dd id="restore-result-records">—</dd></div>
+          </dl>
+        </aside>
+      </div>
+
+      <section class="panel table-panel restore-table-panel">
+        <div class="table-toolbar">
+          <div><h2>Dados restaurados</h2><p>Contagem realizada diretamente no banco de destino.</p></div>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th scope="col">Tabela pública</th><th scope="col">Registros</th></tr></thead>
+            <tbody id="restore-tables-body">
+              <tr class="empty-row"><td colspan="2">O resultado aparecerá após a conferência.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel log-panel">
+        <div class="table-toolbar log-toolbar">
+          <div><h2>Log da restauração</h2><p>As chaves e senhas não são exibidas.</p></div>
+        </div>
+        <pre id="restore-log" aria-live="polite">Nenhuma restauração iniciada.</pre>
+      </section>
+    </section>
+
+    <section class="view" id="historico" aria-labelledby="titulo-historico">
+      <div class="page-heading">
+        <div>
+          <span class="eyebrow">Registros do banco-alvo</span>
+          <h1 id="titulo-historico">Histórico de execuções</h1>
+          <p>Os registros são salvos no schema <code>backup_manager</code> do banco informado.</p>
+        </div>
+      </div>
+
+      <div class="message hidden" id="history-message" role="alert"></div>
+
+      <section class="panel table-panel">
+        <div class="table-toolbar">
+          <div><h2>Últimas execuções</h2><p>Modo, regra aplicada, manutenção, arquivo e resultado.</p></div>
+          <button class="button secondary" id="refresh-history" type="button">Atualizar histórico</button>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Data e hora</th>
+                <th scope="col">Duração</th>
+                <th scope="col">Modo</th>
+                <th scope="col">Dias</th>
+                <th scope="col">Ação</th>
+                <th scope="col">Proteção</th>
+                <th scope="col">Resultado</th>
+                <th scope="col">Arquivo</th>
+                <th scope="col">Log</th>
+              </tr>
+            </thead>
+            <tbody id="history-body">
+              <tr class="empty-row"><td colspan="10">Clique em “Atualizar histórico” após informar a conexão.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel log-panel" id="history-log-panel" hidden>
+        <div class="table-toolbar log-toolbar">
+          <div><h2>Log preservado</h2><p id="history-log-details">Registro selecionado no histórico.</p></div>
+          <button class="button secondary" id="close-history-log" type="button">Fechar log</button>
+        </div>
+        <pre id="history-log-content"></pre>
+      </section>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Mateus Lacerda Apolinario · Gustavo Serafim Perraro</span>
+    <a href="https://github.com/sacarau/Gerenciamento-de-Backup" target="_blank" rel="noreferrer">Repositório do projeto</a>
+  </footer>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>

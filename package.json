@@ -1,0 +1,22 @@
+{
+  "name": "gerenciamento-de-backup",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plataforma acadêmica para manutenção e backup de bancos PostgreSQL.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "7zip-bin": "^5.2.0",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "pg": "^8.16.3"
+  }
+}
